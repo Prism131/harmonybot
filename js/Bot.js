@@ -9,6 +9,18 @@ Bot.DBM = null;
 
 const DiscordJS = require('discord.js');
 
+const http = require('http');
+const express = require('express');
+const app = express();
+app.get("/", (request, response) => {
+console.log(Date.now() + " Hey! No sleeping! Ping received.");
+response.sendStatus(200);
+});
+app.listen(process.env.PORT);
+setInterval(() => {
+http.get(`http://${process.env.harmonybot}.glitch.me/`);
+}, 280000);
+
 Bot.$cmds = {};
 Bot.$evts = {};
 
