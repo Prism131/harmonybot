@@ -6,7 +6,7 @@ module.exports = {
 // This is the name of the action displayed in the editor.
 //---------------------------------------------------------------------
 
-name: "Store Member Things",
+name: "Store Message Things",
 
 //---------------------------------------------------------------------
 // Action Section
@@ -14,7 +14,7 @@ name: "Store Member Things",
 // This is the section the action will fall into.
 //---------------------------------------------------------------------
 
-section: "Member Control",
+section: "Messaging",
 
 //---------------------------------------------------------------------
 // Action Subtitle
@@ -23,9 +23,9 @@ section: "Member Control",
 //---------------------------------------------------------------------
 
 subtitle: function(data) {
-	const members = ['Mentioned User', 'Command Author', 'Temp Variable', 'Server Variable', 'Global Variable'];
-	const info = ['Join date', 'Voice Channel ID', 'Last Message', 'Is kickable?', 'Is bot?', 'Discriminator','Account Creation Date', 'Tag'];
-	return `${members[parseInt(data.member)]} - ${info[parseInt(data.info)]}`;
+	const message = ['Command Message', 'Temp Variable', 'Server Variable', 'Global Variable'];
+	const info = ['Message edited at', 'Message edits history', 'Message is pinnable?', 'Message includes @everyone mention?', 'Messages different reactions count', 'Mentioned users list', 'Mentioned users count'];
+	return `${message[parseInt(data.message)]} - ${info[parseInt(data.info)]}`;
 },
 
 //---------------------------------------------------------------------
@@ -39,10 +39,10 @@ subtitle: function(data) {
 	 author: "Lasse",
 
 	 // The version of the mod (Defaults to 1.0.0)
-	 version: "1.8.8", //Added in 1.8.5
+	 version: "1.8.2",
 
 	 // A short description to show on the mod line for this mod (Must be on a single line)
-	 short_description: "Stores Members Information",
+	 short_description: "Stores Messages Information",
 
 	 // If it depends on any other mods by name, ex: WrexMODS if the mod uses something from WrexMods
 
@@ -62,28 +62,25 @@ variableStorage: function(data, varType) {
 	let dataType = 'Unknown Type';
 	switch(info) {
 		case 0:
-			dataType = "Text";
+			dataType = "Date";
 			break;
 		case 1:
-			dataType = "Number";
+			dataType = "Array";
 			break;
 		case 2:
-			dataType = "Text";
+			dataType = "Boolean";
 			break;
 		case 3:
 			dataType = "Boolean";
 			break;
 		case 4:
-			dataType = "Boolean";
+			dataType = "Number";
 			break;
 		case 5:
-			dataType = "Text";
+			dataType = "Array";
 			break;
 		case 6:
-			dataType = "Date";
-			break;
-		case 7:
-			dataType = "Text";
+			dataType = "Number";
 			break;
 	}
 	return ([data.varName2, dataType]);
@@ -97,7 +94,7 @@ variableStorage: function(data, varType) {
 // are also the names of the fields stored in the action's JSON data.
 //---------------------------------------------------------------------
 
-fields: ["member", "varName", "info", "storage", "varName2"],
+fields: ["message", "varName", "info", "storage", "varName2"],
 
 //---------------------------------------------------------------------
 // Command HTML
@@ -125,9 +122,9 @@ html: function(isEvent, data) {
 	</div><br>
 <div>
 	<div style="float: left; width: 35%;">
-		Source Member:<br>
-		<select id="member" class="round" onchange="glob.memberChange(this, 'varNameContainer')">
-			${data.members[isEvent ? 1 : 0]}
+		Source Message:<br>
+		<select id="message" class="round" onchange="glob.messageChange(this, 'varNameContainer')">
+			${data.messages[isEvent ? 1 : 0]}
 		</select>
 	</div>
 	<div id="varNameContainer" style="display: none; float: right; width: 60%;">
@@ -139,12 +136,13 @@ html: function(isEvent, data) {
 	<div style="padding-top: 8px; width: 70%;">
 		Source Info:<br>
 		<select id="info" class="round">
-			<option value="0" selected>Join Date</option>
-			<option value="1">Voice Channel</option>
-			<option value="2">Last Message</option>
-			<option value="6">Account Creation Date</option>
-			<option value="5">Discriminator (#0001)</option>
-			<option value="7">Tag (Lasse#0001)</option>
+			<option value="0" selected>Message edited at</option>
+			<option value="1">Message edit history</option>
+			<option value="2">Message is pinnable?</option>
+			<option value="3">Message includes @everyone mention?</option>
+			<option value="4">Messages different reactions count</option>
+			<option value="5">Messages mentioned users list</option>
+			<option value="6">Messages mentioned users count</option>
 		</select>
 	</div>
 </div><br>
@@ -173,7 +171,7 @@ html: function(isEvent, data) {
 init: function() {
 	const {glob, document} = this;
 
-	glob.memberChange(document.getElementById('member'), 'varNameContainer');
+	glob.messageChange(document.getElementById('message'), 'varNameContainer')
 },
 
 //---------------------------------------------------------------------
@@ -186,49 +184,38 @@ init: function() {
 
 action: function(cache) {
 	const data = cache.actions[cache.index];
-	const member = parseInt(data.member);
+	const message = parseInt(data.message);
 	const varName = this.evalMessage(data.varName, cache);
 	const info = parseInt(data.info);
-	const mem = this.getMember(member, varName, cache);
-	if(!mem) {
+	const msg = this.getMessage(message, varName, cache);
+	if(!msg) {
 		this.callNextAction(cache);
 		return;
 	}
-	const server = cache.server;
 	let result;
 	switch(info) {
 		case 0:
-			result = mem.joinedAt;
+			result = msg.editedAt;
 			break;
 		case 1:
-			result = mem.voiceChannel; //Changed from VC ID to VC - v1.8.5
-		default:
+			result = msg.edits;
 			break;
 		case 2:
-			result = mem.lastMessage;
+			result = msg.pinnable;
 			break;
-		case 3: //Deprecated in 1.8.8 by Lasse because of the new "Check If Member" action
-			result = mem.kickable;
+		case 3:
+			result = msg.mentions.everyone;
 			break;
-		case 4: //Deprecated in 1.8.8 by Lasse because of the new "Check If Member" action
-			if(mem.user) {
-				result = mem.user.bot;
-			}
+		case 4:
+			result = msg.reactions.array().length;
 			break;
 		case 5:
-			if(mem.user) {
-				result = mem.user.discriminator;
-			}
+			result = msg.mentions.users.array();
 			break;
 		case 6:
-			if (mem.user) {
-				result = mem.user.createdAt;
-			}
+			result = msg.mentions.users.array().length;
 			break;
-		case 7:
-			if (mem.user) {
-				result = mem.user.tag;
-			}
+		default:
 			break;
 	}
 	if(result !== undefined) {

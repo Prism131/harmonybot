@@ -6,7 +6,7 @@ module.exports = {
 // This is the name of the action displayed in the editor.
 //---------------------------------------------------------------------
 
-name: "Store Member Things",
+name: "Store Voice channel things",
 
 //---------------------------------------------------------------------
 // Action Section
@@ -14,7 +14,7 @@ name: "Store Member Things",
 // This is the section the action will fall into.
 //---------------------------------------------------------------------
 
-section: "Member Control",
+section: "Channel Control",
 
 //---------------------------------------------------------------------
 // Action Subtitle
@@ -23,31 +23,33 @@ section: "Member Control",
 //---------------------------------------------------------------------
 
 subtitle: function(data) {
-	const members = ['Mentioned User', 'Command Author', 'Temp Variable', 'Server Variable', 'Global Variable'];
-	const info = ['Join date', 'Voice Channel ID', 'Last Message', 'Is kickable?', 'Is bot?', 'Discriminator','Account Creation Date', 'Tag'];
-	return `${members[parseInt(data.member)]} - ${info[parseInt(data.info)]}`;
+	const channels = ['Command Author\'s Voice Ch.', 'Mentioned User\'s Voice Ch.', 'Default Voice Channel', 'Temp Variable', 'Server Variable', 'Global Variable'];
+	const info = ['Bot can speak?', 'Bot can join?', 'Bot can delete VC?', 'VCs position in VC list', 'Members connected'];
+	return `${channels[parseInt(data.channel)]} - ${info[parseInt(data.info)]}`;
 },
 
 //---------------------------------------------------------------------
-	 // DBM Mods Manager Variables (Optional but nice to have!)
-	 //
-	 // These are variables that DBM Mods Manager uses to show information
-	 // about the mods for people to see in the list.
-	 //---------------------------------------------------------------------
+// DBM Mods Manager Variables (Optional but nice to have!)
+//
+// These are variables that DBM Mods Manager uses to show information
+// about the mods for people to see in the list.
+//---------------------------------------------------------------------
 
-	 // Who made the mod (If not set, defaults to "DBM Mods")
-	 author: "Lasse",
+// Who made the mod (If not set, defaults to "DBM Mods")
+author: "Lasse",
 
-	 // The version of the mod (Defaults to 1.0.0)
-	 version: "1.8.8", //Added in 1.8.5
+// The version of the mod (Defaults to 1.0.0)
+version: "1.8.7", //Added in 1.8.2
 
-	 // A short description to show on the mod line for this mod (Must be on a single line)
-	 short_description: "Stores Members Information",
+//1.8.7: Changed dropdown texts!
 
-	 // If it depends on any other mods by name, ex: WrexMODS if the mod uses something from WrexMods
+// A short description to show on the mod line for this mod (Must be on a single line)
+short_description: "Stores Voice Channels Information",
+
+// If it depends on any other mods by name, ex: WrexMODS if the mod uses something from WrexMods
 
 
-	 //---------------------------------------------------------------------
+//---------------------------------------------------------------------
 
 //---------------------------------------------------------------------
 // Action Storage Function
@@ -62,28 +64,19 @@ variableStorage: function(data, varType) {
 	let dataType = 'Unknown Type';
 	switch(info) {
 		case 0:
-			dataType = "Text";
+			dataType = "Boolean";
 			break;
 		case 1:
-			dataType = "Number";
+			dataType = "Boolean";
 			break;
 		case 2:
-			dataType = "Text";
+			dataType = "Boolean";
 			break;
 		case 3:
-			dataType = "Boolean";
+			dataType = "Number";
 			break;
 		case 4:
-			dataType = "Boolean";
-			break;
-		case 5:
-			dataType = "Text";
-			break;
-		case 6:
-			dataType = "Date";
-			break;
-		case 7:
-			dataType = "Text";
+			dataTyple = "Array";
 			break;
 	}
 	return ([data.varName2, dataType]);
@@ -97,7 +90,7 @@ variableStorage: function(data, varType) {
 // are also the names of the fields stored in the action's JSON data.
 //---------------------------------------------------------------------
 
-fields: ["member", "varName", "info", "storage", "varName2"],
+fields: ["channel", "varName", "info", "storage", "varName2"],
 
 //---------------------------------------------------------------------
 // Command HTML
@@ -125,9 +118,9 @@ html: function(isEvent, data) {
 	</div><br>
 <div>
 	<div style="float: left; width: 35%;">
-		Source Member:<br>
-		<select id="member" class="round" onchange="glob.memberChange(this, 'varNameContainer')">
-			${data.members[isEvent ? 1 : 0]}
+		Source Channel:<br>
+		<select id="channel" class="round" onchange="glob.voiceChannelChange(this, 'varNameContainer')">
+			${data.voiceChannels[isEvent ? 1 : 0]}
 		</select>
 	</div>
 	<div id="varNameContainer" style="display: none; float: right; width: 60%;">
@@ -139,12 +132,11 @@ html: function(isEvent, data) {
 	<div style="padding-top: 8px; width: 70%;">
 		Source Info:<br>
 		<select id="info" class="round">
-			<option value="0" selected>Join Date</option>
-			<option value="1">Voice Channel</option>
-			<option value="2">Last Message</option>
-			<option value="6">Account Creation Date</option>
-			<option value="5">Discriminator (#0001)</option>
-			<option value="7">Tag (Lasse#0001)</option>
+			<option value="0" selected>Can Bot Speak?</option>
+			<option value="1">Can Bot Join VC?</option>
+			<option value="2">Can Bot Delete VC?</option>
+			<option value="3">Position In VC List</option>
+			<option value="4">Connected Members</option>
 		</select>
 	</div>
 </div><br>
@@ -173,7 +165,7 @@ html: function(isEvent, data) {
 init: function() {
 	const {glob, document} = this;
 
-	glob.memberChange(document.getElementById('member'), 'varNameContainer');
+	glob.voiceChannelChange(document.getElementById('channel'), 'varNameContainer');
 },
 
 //---------------------------------------------------------------------
@@ -186,57 +178,42 @@ init: function() {
 
 action: function(cache) {
 	const data = cache.actions[cache.index];
-	const member = parseInt(data.member);
+	const channel = parseInt(data.channel);
 	const varName = this.evalMessage(data.varName, cache);
 	const info = parseInt(data.info);
-	const mem = this.getMember(member, varName, cache);
-	if(!mem) {
+	const targetChannel = this.getVoiceChannel(channel, varName, cache);
+	if(!targetChannel) {
 		this.callNextAction(cache);
 		return;
 	}
-	const server = cache.server;
 	let result;
 	switch(info) {
 		case 0:
-			result = mem.joinedAt;
+			result = targetChannel.speakable;
 			break;
 		case 1:
-			result = mem.voiceChannel; //Changed from VC ID to VC - v1.8.5
-		default:
+			result = targetChannel.joinable;
 			break;
 		case 2:
-			result = mem.lastMessage;
+			result = targetChannel.deletable;
 			break;
-		case 3: //Deprecated in 1.8.8 by Lasse because of the new "Check If Member" action
-			result = mem.kickable;
+		case 3:
+			result = targetChannel.position;
 			break;
-		case 4: //Deprecated in 1.8.8 by Lasse because of the new "Check If Member" action
-			if(mem.user) {
-				result = mem.user.bot;
-			}
+		case 4:
+			result = targetChannel.members.array();
 			break;
-		case 5:
-			if(mem.user) {
-				result = mem.user.discriminator;
-			}
-			break;
-		case 6:
-			if (mem.user) {
-				result = mem.user.createdAt;
-			}
-			break;
-		case 7:
-			if (mem.user) {
-				result = mem.user.tag;
-			}
+		default:
 			break;
 	}
 	if(result !== undefined) {
 		const storage = parseInt(data.storage);
 		const varName2 = this.evalMessage(data.varName2, cache);
 		this.storeValue(result, storage, varName2, cache);
+		this.callNextAction(cache);
+	} else {
+		this.callNextAction(cache);
 	}
-	this.callNextAction(cache);
 },
 
 //---------------------------------------------------------------------

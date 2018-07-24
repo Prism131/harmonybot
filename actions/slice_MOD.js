@@ -6,7 +6,7 @@ module.exports = {
 // This is the name of the action displayed in the editor.
 //---------------------------------------------------------------------
 
-name: "Replace",
+name: "Slice",
 
 //---------------------------------------------------------------------
 // Action Section
@@ -14,7 +14,7 @@ name: "Replace",
 // This is the section the action will fall into.
 //---------------------------------------------------------------------
 
-section: "Deprecated",
+section: "Other Stuff",
 
 //---------------------------------------------------------------------
 // Action Subtitle
@@ -23,7 +23,7 @@ section: "Deprecated",
 //---------------------------------------------------------------------
 
 subtitle: function(data) {
-	return `Replaces Text`;
+	return `Slice anything!`;
 },
 
 //---------------------------------------------------------------------
@@ -34,13 +34,13 @@ subtitle: function(data) {
 	//---------------------------------------------------------------------
 
 	// Who made the mod (If not set, defaults to "DBM Mods")
-	author: "EliteArtz",
+	author: "EGGSY",
 
 	// The version of the mod (Defaults to 1.0.0)
-	version: "1.8.7", //Added in 1.8.7
+	version: "1.8.7", //Added in 1.8.6
 
 	// A short description to show on the mod line for this mod (Must be on a single line)
-	short_description: "Replaces your message what you wan't.",
+	short_description: "Slice anything!",
 
 	// If it depends on any other mods by name, ex: WrexMODS if the mod uses something from WrexMods
 
@@ -53,7 +53,7 @@ subtitle: function(data) {
 variableStorage: function(data, varType) {
 	const type = parseInt(data.storage);
 	if(type !== varType) return;
-	let dataType = 'Replaced Text';
+	let dataType = 'Sliced Result';
 	return ([data.varName, dataType]);
 },
 //---------------------------------------------------------------------
@@ -64,7 +64,7 @@ variableStorage: function(data, varType) {
 // are also the names of the fields stored in the action's JSON data.
 //---------------------------------------------------------------------
 
-fields: ["replacemsg", "replaceto", "storage", "varName", "ifEach"],
+fields: ["slice", "startingNumber", "sliceLength", "storage", "varName"],
 
 //---------------------------------------------------------------------
 // Command HTML
@@ -87,22 +87,20 @@ html: function(isEvent, data) {
 <div id="modinfo">
 	<p>
 	   <u>Mod Info:</u><br>
-	   Made by EliteArtz!<br>
-	</p>
+	   Made by EGGSY!<br>
+	</p></div><br>
 	<div padding-top: 8px;">
-		Replace Text:<br>
-		<textarea id="replacemsg" rows="2" placeholder="Insert message here..." style="width: 99%; font-family: monospace; white-space: nowrap; resize: none;"></textarea>
+		Slice Text:<br>
+		<textarea id="slice" rows="2" placeholder="Insert message here..." style="width: 99%; font-family: monospace; white-space: nowrap; resize: none;"></textarea>
 	</div><br>
-	<div style="float: left; width: 50%; padding-top: 8px;">
-	   Replace to:<br>
-	   <input id="replaceto" class="round" type="text">
-    </div><br>
-    <div style="padding-top: 8px;">
-        <select id="ifEach" class="round" style="float: right; width: 45%;">
-            <option value="1">Whole content</option>
-            <option value="0" selected>For Each Word</option>
-        </select>
-    </div><br><br>
+	<div style="float: left; width: 45%; padding-top: 8px;">
+	   Slice Starting Number:<br>
+	   <input id="startingNumber" class="round" type="text">
+	</div>
+	<div style="float: right; width: 45%; padding-top: 8px;">
+	   Slice Length:<br>
+	   <input id="sliceLength" class="round" type="text">
+	</div><br><br>
 	<div style="float: left; width: 35%; padding-top: 8px;">
 		Store Result In:<br>
 		<select id="storage" class="round" onchange="glob.variableChange(this, 'varNameContainer')">
@@ -113,6 +111,12 @@ html: function(isEvent, data) {
 		Variable Name:<br>
 		<input id="varName" class="round" type="text">
 	</div><br><br><br><br>
+	<div id="RandomText" style="padding-top: 8px;">
+		<p>
+		example text: you are the best<br>
+		If you want to slice <b>you</b>, starting number = 0, slice length = 3.
+		</p>
+	</div>
 </div>`
 },
 
@@ -139,41 +143,26 @@ init: function() {
 //---------------------------------------------------------------------
 
 action: function(cache) {
-	//Global Variable's
+
 	const data = cache.actions[cache.index];
-	var result = {};
+	const sliceText = this.evalMessage(data.slice, cache);
+	const startingFrom = parseInt(this.evalMessage(data.startingNumber, cache));
+	const sliceLength = parseInt(this.evalMessage(data.sliceLength, cache));
 
-    // Code
-	try {
-		const replaceTEXT = this.evalMessage(data.replacemsg, cache);
-		const replaceTO = this.evalMessage(data.replaceto, cache);
-		if (replaceTEXT) {
-			if (replaceTO) {
-                if (data.ifEach === "1") {
+	// Check if everything is ok
+	if(startingFrom < 0) return console.log("Your number can not be less than 0.")
+	if(sliceLength == 0) return console.log("Slice length can not be 0.");
+	if(!sliceText) return console.log("Please write something to slice.");
+	if(!startingFrom && startingFrom != 0) return console.log("Please write a starting number.");
+	if(!sliceLength) return console.log("Please write slice length.");
 
-                    result = replaceTEXT.replace(replaceTEXT, replaceTO); //This is the action that we're running if everything is Okay.
+	// Main code
+	result = `${sliceText}`.slice(`${startingFrom}`, `${sliceLength + startingFrom}`);
 
-                    const storage = parseInt(data.storage);
-                    const varName = this.evalMessage(data.varName, cache);
-                    this.storeValue(result, storage, varName, cache);
-
-                } else if (data.ifEach === "0") {
-
-                    result = replaceTEXT.replace(/(\w+)/g, replaceTO); //This is the action that we're running if everything is Okay.
-
-					const storage = parseInt(data.storage);
-                    const varName = this.evalMessage(data.varName, cache);
-                    this.storeValue(result, storage, varName, cache);
-                }
-			} else {
-				console.log('No insert in "Replace To"...'); //logs it in the console if nothing were inserted...
-            }
-		} else {
-		    console.log(`No insert in "Replace Message"...`); //logs it in the console if nothing were inserted...
-		}
-	} catch (e) {
-		console.error("ERROR!" + e + e.stack); //logs if there was an error
-	}
+	// Storing
+	const storage = parseInt(data.storage);
+	const varName = this.evalMessage(data.varName, cache);
+	this.storeValue(result, storage, varName, cache);
 
 	this.callNextAction(cache);
 },
