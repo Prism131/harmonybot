@@ -82,7 +82,7 @@ Bot.login = function() {
 
 Bot.onReady = function() {
 	if(process.send) process.send('BotReady');
-	console.log('Bot is ready!');
+	console.log('Harmony is now online!\nHarmony has successfully restarted!\nHarmony has fully loaded!');
 	this.preformInitialization();
 };
 

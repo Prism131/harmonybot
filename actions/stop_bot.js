@@ -6,7 +6,7 @@ module.exports = {
 // This is the name of the action displayed in the editor.
 //---------------------------------------------------------------------
 
-name: "Welcome",
+name: "Stop Bot",
 
 //---------------------------------------------------------------------
 // Action Section
@@ -14,7 +14,7 @@ name: "Welcome",
 // This is the section the action will fall into.
 //---------------------------------------------------------------------
 
-section: "#Mod Information",
+section: "Bot Client Control",
 
 //---------------------------------------------------------------------
 // Action Subtitle
@@ -23,7 +23,7 @@ section: "#Mod Information",
 //---------------------------------------------------------------------
 
 subtitle: function(data) {
-	return `Does nothing - Click "Edit" for more information`;
+	return `Stops bot`;
 },
 
 //---------------------------------------------------------------------
@@ -34,15 +34,16 @@ subtitle: function(data) {
 //---------------------------------------------------------------------
 
 // Who made the mod (If not set, defaults to "DBM Mods")
-author: "DBM Mods",
+author: "Lasse",
 
 // The version of the mod (Defaults to 1.0.0)
-version: "1.8.9 ~ beta",
+version: "1.8.2",
 
-// A short description to show on the mod line for this mod.
-short_description: "Information about the Mod Collection.",
+// A short description to show on the mod line for this mod (Must be on a single line)
+short_description: "Stops the bot completly",
 
 // If it depends on any other mods by name, ex: WrexMODS if the mod uses something from WrexMods
+
 
 //---------------------------------------------------------------------
 
@@ -52,7 +53,7 @@ short_description: "Information about the Mod Collection.",
 // Stores the relevant variable info for the editor.
 //---------------------------------------------------------------------
 
-variableStorage: function(data, varType) {},
+//variableStorage: function(data, varType) {},
 
 //---------------------------------------------------------------------
 // Action Fields
@@ -62,7 +63,7 @@ variableStorage: function(data, varType) {},
 // are also the names of the fields stored in the action's JSON data.
 //---------------------------------------------------------------------
 
-fields: ["mods"],
+fields: [],
 
 //---------------------------------------------------------------------
 // Command HTML
@@ -82,89 +83,12 @@ fields: ["mods"],
 
 html: function(isEvent, data) {
 	return `
-<style>
-table.scroll {
-    width: 525px; /* 140px * 5 column + 16px scrollbar width */
-    border-spacing: 0;
-    border: 2px solid white;
-}
-
-table.scroll tbody,
-table.scroll thead tr { display: block; }
-
-table.scroll tbody {
-    height: 100px;
-    overflow-y: auto;
-    overflow-x: hidden;
-}
-
-table.scroll tbody td,
-table.scroll thead th {
-    width: 176px;
-}
-
-table.scroll thead th:last-child {
-    width: 180px; /* 140px + 16px scrollbar width */
-}
-
-thead tr th {
-    height: 30px;
-    line-height: 30px;
-    /*text-align: left;*/
-}
-
-tbody { border-top: 2px solid white; }
-
-</style>
-<div id ="wrexdiv" style="width: 550px; height: 350px; overflow-y: scroll;">
+<div><p><u>Mod Info:</u><br>Created by Lasse!</p></div><br><br>
+<div>
 	<p>
-		<h1>Welcome!</h1>
-		Thank you for using the DBM Mod Collection!<br>
-		If you want to tell us something, join the Discord Guild below.
-		And if something doesn't work feel free to create an issue on GitHub
-		or open #support and describe your problem.
-
-		<h3>Discord:</h3>
-		Join the Discord Guild to stay updated and be able to suggest things.<br>
-		https://discord.gg/Y4fPBnZ
-
-		<h3>Your version:</h3>
-		${this.version}
-
-		<h3>GitHub:</h3>
-		Visit us on GitHub! The whole mod collection is on GitHub
-		and everyone is invited to join us developing new mods!<br>
-		Copy and paste the link to view the site in your browser.<br>
-		https://github.com/Discord-Bot-Maker-Mods/DBM-Mods/
-	</p>
-	<h3>Current List of Mods</h3>
-	<table class="scroll">
-		<thead >
-			<tr>
-				<th scope="col">Name</th>
-				<th scope="col">Section</th>
-				<th scope="col">Author</th>
-			</tr>
-		</thead>
-			<tbody id="mods">
-			</tbody>
-	</table><br><br>
-	<p>
-		<h3>Patreon:</h3>
-		You can support us on Patreon!
-		Patreon is a website where you can support creators with a small donation
-		per month. And you will get also some things like a Discord Patron role and a mention here:<br>
-		<u>Patrons:</u><br>
-		- MitchDaGamer (5$)<br>
-		- Aamon (5$)<br>
-		- cryptomoon (3$)<br>
-		- Cipher The Universe (1$)<br>
-		- General Wrex (1$)<br>
-		- EGGSY (1$)<br>
-		- Proximity (1$)<br>
-		- William286 (1$)<br><br>
-		Become a patron today!<br>
-		https://www.patreon.com/dbmmods
+		<u>Warning:</u><br>
+		This action stops the bot. You cannot restart it with a command!<br>
+		Choose the permissions for this command/event carefully!
 	</p>
 </div>`
 },
@@ -177,47 +101,7 @@ tbody { border-top: 2px solid white; }
 // functions for the DOM elements.
 //---------------------------------------------------------------------
 
-init: function() {
-	const {glob, document} = this;
-
-	var path = require("path")
-
-	try {
-
-		var mods = document.getElementById("mods");
-
-		require("fs").readdirSync(__dirname).forEach(function(file) {
-			if(file.match(/MOD.js/i)) {
-				var action = require(path.join(__dirname, file));
-				if(action.name && action.action !== null) {
-
-					const tr = document.createElement('tr')
-					tr.setAttribute('class', 'table-dark')
-
-					const name = document.createElement('td')
-					const headerText = document.createElement("b")
-					headerText.innerHTML = action.name
-					name.appendChild(headerText)
-
-					name.setAttribute('scope', 'row')
-					tr.appendChild(name)
-
-					const section = document.createElement('td')
-					section.appendChild(document.createTextNode(action.section))
-					tr.appendChild(section)
-
-					const author = document.createElement('td')
-					author.appendChild(document.createTextNode(action.author ? action.author : "DBM"))
-					tr.appendChild(author)
-					mods.appendChild(tr);
-				}
-			}
-		});
-	} catch (error) {
-		// write any init errors to errors.txt in dbm's main directory
-		require("fs").appendFile("errors.txt", error.stack ? error.stack : error + "\r\n");
-	}
-},
+init: function() {},
 
 //---------------------------------------------------------------------
 // Action Bot Function
@@ -228,7 +112,9 @@ init: function() {
 //---------------------------------------------------------------------
 
 action: function(cache) {
-	this.callNextAction(cache);
+	const data = cache.actions[cache.index];
+	console.log('Stopped bot!');
+	this.getDBM().Bot.bot.destroy();
 },
 
 //---------------------------------------------------------------------

@@ -6,7 +6,7 @@ module.exports = {
 // This is the name of the action displayed in the editor.
 //---------------------------------------------------------------------
 
-name: "Store Member Things",
+name: "Store Role Things",
 
 //---------------------------------------------------------------------
 // Action Section
@@ -14,7 +14,7 @@ name: "Store Member Things",
 // This is the section the action will fall into.
 //---------------------------------------------------------------------
 
-section: "Member Control",
+section: "Role Control",
 
 //---------------------------------------------------------------------
 // Action Subtitle
@@ -23,9 +23,9 @@ section: "Member Control",
 //---------------------------------------------------------------------
 
 subtitle: function(data) {
-	const members = ['Mentioned User', 'Command Author', 'Temp Variable', 'Server Variable', 'Global Variable'];
-	const info = ['Join date', 'Voice Channel ID', 'Last Message', 'Is kickable?', 'Is bot?', 'Discriminator','Account Creation Date', 'Tag'];
-	return `${members[parseInt(data.member)]} - ${info[parseInt(data.info)]}`;
+	const roles = ['Mentioned Role', '1st Author Role', '1st Server Role', 'Temp Variable', 'Server Variable', 'Global Variable'];
+	const info = ['Position role list', 'Creation Date', 'Managed bot role?', 'Role Members', 'Role Members Amount', 'Can bot edit role?', 'Role Members Object', 'Role Members IDs']
+	return `${roles[parseInt(data.role)]} - ${info[parseInt(data.info)]}`;
 },
 
 //---------------------------------------------------------------------
@@ -36,13 +36,13 @@ subtitle: function(data) {
 	 //---------------------------------------------------------------------
 
 	 // Who made the mod (If not set, defaults to "DBM Mods")
-	 author: "Lasse",
+	 author: "Lasse, EliteArtz",
 
 	 // The version of the mod (Defaults to 1.0.0)
-	 version: "1.8.8", //Added in 1.8.5
+	 version: "1.8.2",
 
 	 // A short description to show on the mod line for this mod (Must be on a single line)
-	 short_description: "Stores Members Information",
+	 short_description: "Stores Roles Information",
 
 	 // If it depends on any other mods by name, ex: WrexMODS if the mod uses something from WrexMods
 
@@ -62,28 +62,22 @@ variableStorage: function(data, varType) {
 	let dataType = 'Unknown Type';
 	switch(info) {
 		case 0:
-			dataType = "Text";
+			dataType = 'Number';
 			break;
 		case 1:
-			dataType = "Number";
+			dataType = 'Date';
 			break;
 		case 2:
-			dataType = "Text";
+			dataType = 'Boolean';
 			break;
 		case 3:
-			dataType = "Boolean";
+			dataType = 'Text';
 			break;
 		case 4:
-			dataType = "Boolean";
+			dataType = 'Number';
 			break;
 		case 5:
-			dataType = "Text";
-			break;
-		case 6:
-			dataType = "Date";
-			break;
-		case 7:
-			dataType = "Text";
+			dataType = 'Text';
 			break;
 	}
 	return ([data.varName2, dataType]);
@@ -97,7 +91,7 @@ variableStorage: function(data, varType) {
 // are also the names of the fields stored in the action's JSON data.
 //---------------------------------------------------------------------
 
-fields: ["member", "varName", "info", "storage", "varName2"],
+fields: ["role", "varName", "info", "storage", "varName2"],
 
 //---------------------------------------------------------------------
 // Command HTML
@@ -120,14 +114,14 @@ html: function(isEvent, data) {
 	<div>
 		<p>
 			<u>Mod Info:</u><br>
-			Created by Lasse!
+			Created by EliteArtz & Lasse!
 		</p>
 	</div><br>
 <div>
 	<div style="float: left; width: 35%;">
-		Source Member:<br>
-		<select id="member" class="round" onchange="glob.memberChange(this, 'varNameContainer')">
-			${data.members[isEvent ? 1 : 0]}
+		Source Role:<br>
+		<select id="role" class="round" onchange="glob.roleChange(this, 'varNameContainer')">
+			${data.roles[isEvent ? 1 : 0]}
 		</select>
 	</div>
 	<div id="varNameContainer" style="display: none; float: right; width: 60%;">
@@ -139,12 +133,14 @@ html: function(isEvent, data) {
 	<div style="padding-top: 8px; width: 70%;">
 		Source Info:<br>
 		<select id="info" class="round">
-			<option value="0" selected>Join Date</option>
-			<option value="1">Voice Channel</option>
-			<option value="2">Last Message</option>
-			<option value="6">Account Creation Date</option>
-			<option value="5">Discriminator (#0001)</option>
-			<option value="7">Tag (Lasse#0001)</option>
+			<option value="0" selected>Postion in Role list</option>
+			<option value="1">Creation date</option>
+			<option value="2">Managed bot Role</option>
+			<option value="5">Can bot edit this role?</option>
+			<option value="3">Role Members</option>
+			<option value="4">Role Members Amount</option>
+			<option value="6">Role Members Objects</option>
+			<option value="7">Role Members IDs</option>
 		</select>
 	</div>
 </div><br>
@@ -173,7 +169,7 @@ html: function(isEvent, data) {
 init: function() {
 	const {glob, document} = this;
 
-	glob.memberChange(document.getElementById('member'), 'varNameContainer');
+	glob.roleChange(document.getElementById('role'), 'varNameContainer')
 },
 
 //---------------------------------------------------------------------
@@ -186,49 +182,41 @@ init: function() {
 
 action: function(cache) {
 	const data = cache.actions[cache.index];
-	const member = parseInt(data.member);
+	const role = parseInt(data.role);
 	const varName = this.evalMessage(data.varName, cache);
 	const info = parseInt(data.info);
-	const mem = this.getMember(member, varName, cache);
-	if(!mem) {
+	const targetRole = this.getRole(role, varName, cache);
+	if(!targetRole) {
 		this.callNextAction(cache);
 		return;
 	}
-	const server = cache.server;
 	let result;
 	switch(info) {
 		case 0:
-			result = mem.joinedAt;
+			result = targetRole.calculatedPosition;
 			break;
 		case 1:
-			result = mem.voiceChannel; //Changed from VC ID to VC - v1.8.5
-		default:
+			result = targetRole.createdAt;
 			break;
 		case 2:
-			result = mem.lastMessage;
+			result = targetRole.managed;
 			break;
-		case 3: //Deprecated in 1.8.8 by Lasse because of the new "Check If Member" action
-			result = mem.kickable;
+		case 3:
+			result = targetRole.members.array();
 			break;
-		case 4: //Deprecated in 1.8.8 by Lasse because of the new "Check If Member" action
-			if(mem.user) {
-				result = mem.user.bot;
-			}
+		case 4:
+			result = targetRole.members.array().length;
 			break;
 		case 5:
-			if(mem.user) {
-				result = mem.user.discriminator;
-			}
+			result = targetRole.editable;
 			break;
 		case 6:
-			if (mem.user) {
-				result = mem.user.createdAt;
-			}
+			result = targetRole.members.id; //Are that really objects @EliteArtz? lul
 			break;
 		case 7:
-			if (mem.user) {
-				result = mem.user.tag;
-			}
+			result = targetRole.members.map(member => member.id);
+			break;
+		default:
 			break;
 	}
 	if(result !== undefined) {
