@@ -19,7 +19,7 @@ response.sendStatus(200);
 app.listen(process.env.PORT);
 setInterval(() => {
 http.get(`http://${process.env.harmonybot}.glitch.me/`);
-}, 280000);
+}, 280000); 
 
 Bot.$cmds = {};
 Bot.$evts = {};
@@ -82,7 +82,7 @@ Bot.login = function() {
 
 Bot.onReady = function() {
 	if(process.send) process.send('BotReady');
-	console.log('Harmony is now online!\nHarmony has successfully restarted!\nHarmony has fully loaded!');
+	console.log('Bot is ready!');
 	this.preformInitialization();
 };
 

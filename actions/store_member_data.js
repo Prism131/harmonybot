@@ -6,7 +6,7 @@ module.exports = {
 // This is the name of the action displayed in the editor.
 //---------------------------------------------------------------------
 
-name: "Check DBL Voted",
+name: "Store Member Data",
 
 //---------------------------------------------------------------------
 // Action Section
@@ -14,23 +14,7 @@ name: "Check DBL Voted",
 // This is the section the action will fall into.
 //---------------------------------------------------------------------
 
-section: "Conditions",
-
-//---------------------------------------------------------------------
-// DBM Mods Manager Variables
-//
-// These are variables that DBM Mods Manager uses to show information
-// about the mods for people to see in the list.
-//---------------------------------------------------------------------
-
-// Who made the mod (If not set, defaults to "DBM Mods")
-author: "Lasse",
-
-// The version of the mod (Defaults to 1.0.0)
-version: "1.8.9",
-
-// A short description to show on the mod line for this mod (Must be on a single line)
-short_description: "Check Voted Status of User on DBL",
+section: "Member Control",
 
 //---------------------------------------------------------------------
 // Action Subtitle
@@ -39,8 +23,21 @@ short_description: "Check Voted Status of User on DBL",
 //---------------------------------------------------------------------
 
 subtitle: function(data) {
-	const results = ["Continue Actions", "Stop Action Sequence", "Jump To Action", "Jump Forward Actions"];
-	return `If True: ${results[parseInt(data.iftrue)]} ~ If False: ${results[parseInt(data.iffalse)]}`;
+	const members = ['Mentioned User', 'Command Author', 'Temp Variable', 'Server Variable', 'Global Variable'];
+	const storage = ['', 'Temp Variable', 'Server Variable', 'Global Variable'];
+	return `${members[parseInt(data.member)]} - ${storage[parseInt(data.storage)]} (${data.varName2})`;
+},
+
+//---------------------------------------------------------------------
+// Action Storage Function
+//
+// Stores the relevant variable info for the editor.
+//---------------------------------------------------------------------
+
+variableStorage: function(data, varType) {
+	const type = parseInt(data.storage);
+	if(type !== varType) return;
+	return ([data.varName2, 'Unknown Type']);
 },
 
 //---------------------------------------------------------------------
@@ -51,47 +48,59 @@ subtitle: function(data) {
 // are also the names of the fields stored in the action's JSON data.
 //---------------------------------------------------------------------
 
-fields: ["member", "apitoken", "varName", "iftrue", "iftrueVal", "iffalse", "iffalseVal"],
+fields: ["member", "varName", "dataName", "defaultVal", "storage", "varName2"],
 
 //---------------------------------------------------------------------
 // Command HTML
 //
 // This function returns a string containing the HTML used for
-// editting actions.
+// editting actions. 
 //
 // The "isEvent" parameter will be true if this action is being used
-// for an event. Due to their nature, events lack certain information,
+// for an event. Due to their nature, events lack certain information, 
 // so edit the HTML to reflect this.
 //
-// The "data" parameter stores constants for select elements to use.
+// The "data" parameter stores constants for select elements to use. 
 // Each is an array: index 0 for commands, index 1 for events.
-// The names are: sendTargets, members, roles, channels,
+// The names are: sendTargets, members, roles, channels, 
 //                messages, servers, variables
 //---------------------------------------------------------------------
 
 html: function(isEvent, data) {
 	return `
-	<div><p><u>Mod Info:</u><br>Created by Lasse!<br>Idea by CmdData</p></div><br>
-	<div>
-		<div style="float: left; width: 35%;">
-			Source Member:<br>
-			<select id="member" class="round" onchange="glob.memberChange(this, 'varNameContainer')">
-				${data.members[isEvent ? 1 : 0]}
-			</select>
-		</div>
-		<div id="varNameContainer" style="display: none; float: right; width: 60%;">
-			Variable Name:<br>
-			<input id="varName" class="round" type="text" list="variableList"><br>
-		</div>
-	</div><br><br><br>
 <div>
-	<div style="float: left; width: 89%;">
-		DBL API Token:<br>
-		<input id="apitoken" class="round" type="text">
+	<div style="float: left; width: 35%;">
+		Member:<br>
+		<select id="member" class="round" onchange="glob.memberChange(this, 'varNameContainer')">
+			${data.members[isEvent ? 1 : 0]}
+		</select>
+	</div>
+	<div id="varNameContainer" style="display: none; float: right; width: 60%;">
+		Variable Name:<br>
+		<input id="varName" class="round" type="text" list="variableList">
 	</div>
 </div><br><br><br>
 <div style="padding-top: 8px;">
-	${data.conditions[0]}
+	<div style="float: left; width: 40%;">
+		Data Name:<br>
+		<input id="dataName" class="round" type="text">
+	</div>
+	<div style="float: left; width: 60%;">
+		Default Value (if data doesn't exist):<br>
+		<input id="defaultVal" class="round" type="text" value="0">
+	</div>
+</div><br><br><br>
+<div style="padding-top: 8px;">
+	<div style="float: left; width: 35%;">
+		Store In:<br>
+		<select id="storage" class="round">
+			${data.variables[1]}
+		</select>
+	</div>
+	<div id="varNameContainer2" style="float: right; width: 60%;">
+		Variable Name:<br>
+		<input id="varName2" class="round" type="text"><br>
+	</div>
 </div>`
 },
 
@@ -107,37 +116,35 @@ init: function() {
 	const {glob, document} = this;
 
 	glob.memberChange(document.getElementById('member'), 'varNameContainer');
-	glob.onChangeTrue(document.getElementById('iftrue'));
-	glob.onChangeFalse(document.getElementById('iffalse'));
 },
 
 //---------------------------------------------------------------------
 // Action Bot Function
 //
 // This is the function for the action within the Bot's Action class.
-// Keep in mind event calls won't have access to the "msg" parameter,
+// Keep in mind event calls won't have access to the "msg" parameter, 
 // so be sure to provide checks for variable existance.
 //---------------------------------------------------------------------
 
 action: function(cache) {
 	const data = cache.actions[cache.index];
-	const userid = this.evalMessage(data.userid, cache);
-	const apitoken = this.evalMessage(data.apitoken, cache);
 	const type = parseInt(data.member);
 	const varName = this.evalMessage(data.varName, cache);
 	const member = this.getMember(type, varName, cache);
-
-	const WrexMODS = this.getWrexMods();
-	const DBL = WrexMODS.require('dblapi.js');
-	const dbl = new DBL(apitoken);
-
-	if(!apitoken) {
-		console.log('ERROR! Please provide an API token for DBL!');
+	if(member && member.data) {
+		const dataName = this.evalMessage(data.dataName, cache);
+		const defVal = this.eval(this.evalMessage(data.defaultVal, cache), cache);
+		let result;
+		if(defVal === undefined) {
+			result = member.data(dataName);
+		} else {
+			result = member.data(dataName, defVal);
+		}
+		const storage = parseInt(data.storage);
+		const varName2 = this.evalMessage(data.varName2, cache);
+		this.storeValue(result, storage, varName2, cache);
 	}
-
-	dbl.hasVoted(member.user.id).then(voted => {
-		this.executeResults(voted, data, cache);
-	});
+	this.callNextAction(cache);
 },
 
 //---------------------------------------------------------------------
